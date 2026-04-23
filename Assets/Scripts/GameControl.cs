@@ -33,12 +33,14 @@ public class GameControl : MonoBehaviour
     {
         if(rows[0].rowStopped && rows[1].rowStopped && rows[2].rowStopped)
         {
-            //StartCoroutine("PullHandle");
+            StartCoroutine(PullHandle());
         }
     }
 
     IEnumerator PullHandle()
     {
+        Debug.Log("Handle pulled!");
+
         for(int i = 0; i < 10; i += 5)
         {
             handle.Rotate(0, 0, i);
