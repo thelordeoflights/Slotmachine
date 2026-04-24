@@ -36,15 +36,16 @@ public class Row : MonoBehaviour
 
         randomValue = Random.Range(60, 100);
 
-        switch (randomValue % 3)
-        {
-            case 1:
-                randomValue += 2;
-                break;
-            case 2:
-                randomValue += 1;
-                break;
-        }
+        randomValue += (6 - randomValue % 6) % 6;
+        // switch (randomValue % 3)
+        // {
+        //     case 1:
+        //         randomValue += 2;
+        //         break;
+        //     case 2:
+        //         randomValue += 1;
+        //         break;
+        // }
         for(int i = 0; i < randomValue; i++)
         {
             if(transform.position.y <= -6.75f)
@@ -52,18 +53,38 @@ public class Row : MonoBehaviour
                 transform.position = new Vector2(transform.position.x, 2.25f);
             }
             transform.position = new Vector2(transform.position.x, transform.position.y - 0.25f);
-            if(i > Mathf.RoundToInt(randomValue * 0.5f) && i <= Mathf.RoundToInt(randomValue * 0.75f))
+           
+           if (i <= Mathf.RoundToInt(randomValue * 0.5f))
             {
-                timeInterval += 0.05f;
+                timeInterval = 0.025f; // full speed
             }
-            else if(i > Mathf.RoundToInt(randomValue * 0.75f) && i <= Mathf.RoundToInt(randomValue * 0.95f))
+            else if (i <= Mathf.RoundToInt(randomValue * 0.75f))
             {
-                timeInterval += 0.15f;
+                timeInterval = 0.06f;  // starting to slow
             }
-            else if(i > Mathf.RoundToInt(randomValue * 0.95f))
+            else if (i <= Mathf.RoundToInt(randomValue * 0.95f))
             {
-                timeInterval += 0.2f;
+                timeInterval = 0.12f;  // noticeably slower
             }
+            else
+            {
+                timeInterval = 0.22f;  // final crawl to a stop
+            }
+           
+           
+           
+            // if(i > Mathf.RoundToInt(randomValue * 0.5f) && i <= Mathf.RoundToInt(randomValue * 0.75f))
+            // {
+            //     timeInterval += 0.05f;
+            // }
+            // else if(i > Mathf.RoundToInt(randomValue * 0.75f) && i <= Mathf.RoundToInt(randomValue * 0.95f))
+            // {
+            //     timeInterval += 0.15f;
+            // }
+            // else if(i > Mathf.RoundToInt(randomValue * 0.95f))
+            // {
+            //     timeInterval += 0.2f;
+            // }
             yield return new WaitForSeconds(timeInterval); 
         }
         // Round to nearest 0.25f increment for reliable float comparison

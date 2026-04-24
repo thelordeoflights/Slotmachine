@@ -9,10 +9,16 @@ public class GameControl : MonoBehaviour
 {
     public static event Action HandlePulled = delegate { };
     [SerializeField] Row[] rows;
-    [SerializeField] Transform handle;
+    [SerializeField] Transform handle, handlePulled;
     [SerializeField] TextMeshProUGUI PrizeText;
     int prizeValue;
     bool resultsChecked = false;
+    void Start()
+    {
+        handle.gameObject.SetActive(true);
+        handlePulled.gameObject.SetActive(false);
+        PrizeText.enabled = false;
+    }
     void Update()
     {
         if(!rows[0].rowStopped || !rows[1].rowStopped || !rows[2].rowStopped)
@@ -41,18 +47,23 @@ public class GameControl : MonoBehaviour
     {
         Debug.Log("Handle pulled!");
 
-        for(int i = 0; i < 10; i += 5)
-        {
-            handle.Rotate(0, 0, i);
-            yield return new WaitForSeconds(0.1f);
-        }
+        handle.gameObject.SetActive(false);
+        handlePulled.gameObject.SetActive(true);
+        // for(int i = 0; i < 10; i += 5)
+        // {
+        //     handle.Rotate(0, 0, i);
+        //     yield return new WaitForSeconds(0.1f);
+        // }
         HandlePulled();
+        yield return new WaitForSeconds(0.1f);
+        handlePulled.gameObject.SetActive(false);
+        handle.gameObject.SetActive(true);
         
-        for(int i = 0; i < 15; i += 5)
-        {
-            handle.Rotate(0, 0, -i);
-            yield return new WaitForSeconds(0.1f);
-        }
+        // for(int i = 0; i < 15; i += 5)
+        // {
+        //     handle.Rotate(0, 0, -i);
+        //     yield return new WaitForSeconds(0.1f);
+        // }
     }
     void CheckResults()
     {
