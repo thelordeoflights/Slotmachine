@@ -241,7 +241,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SoundManager
   audioSource: {fileID: 337302745}
-  spinSound: {fileID: 8300000, guid: b91a559f668c5fb46a7d55378a1a34dc, type: 3}
   winSound: {fileID: 8300000, guid: 8515af9373a78354f8dbe45f51e31b68, type: 3}
 --- !u!82 &337302745
 AudioSource:
@@ -673,13 +672,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa1dc5f9fd95d0f45b91ff0c7cc9ae86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Row
-  speedFull: 0.015
-  speedSlow1: 0.02
-  speedSlow2: 0.04
-  speedCrawl: 0.22
-  warmUpSteps: 30
-  minExtraSteps: 60
-  maxExtraSteps: 100
+  fullSpeed: 0.025
+  crawlSpeed: 0.22
+  decelerationCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  jitter: 0.004
+  fullSpeedDuration: 3
+  minCoastSteps: 60
+  maxCoastSteps: 100
+  settleSpeed: 8
   rowStopped: 0
   stoppedSlot: 
 --- !u!212 &541931662
@@ -901,13 +924,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa1dc5f9fd95d0f45b91ff0c7cc9ae86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Row
-  speedFull: 0.025
-  speedSlow1: 0.06
-  speedSlow2: 0.12
-  speedCrawl: 0.22
-  warmUpSteps: 30
-  minExtraSteps: 60
-  maxExtraSteps: 100
+  fullSpeed: 0.025
+  crawlSpeed: 0.22
+  decelerationCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  jitter: 0.004
+  fullSpeedDuration: 3
+  minCoastSteps: 60
+  maxCoastSteps: 100
+  settleSpeed: 8
   rowStopped: 0
   stoppedSlot: 
 --- !u!212 &928502359
@@ -1354,9 +1401,9 @@ MonoBehaviour:
   - {fileID: 541931661}
   - {fileID: 2057804499}
   - {fileID: 928502358}
-  handle: {fileID: 1442527303}
+  handleIdle: {fileID: 1442527303}
   handlePulled: {fileID: 1008220241}
-  PrizeText: {fileID: 1989711241}
+  prizeText: {fileID: 1989711241}
   soundManager: {fileID: 337302744}
 --- !u!61 &1258573936
 BoxCollider2D:
@@ -1679,8 +1726,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 237.9047, y: 50}
+  m_AnchoredPosition: {x: -4.448, y: 0}
+  m_SizeDelta: {x: 358.1942, y: 64.6978}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1989711241
 MonoBehaviour:
@@ -1729,10 +1776,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
+  m_fontSize: 54.95
   m_fontSizeBase: 36
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
@@ -1812,13 +1859,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa1dc5f9fd95d0f45b91ff0c7cc9ae86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Row
-  speedFull: 0.01
-  speedSlow1: 0.04
-  speedSlow2: 0.08
-  speedCrawl: 0.22
-  warmUpSteps: 30
-  minExtraSteps: 60
-  maxExtraSteps: 100
+  fullSpeed: 0.025
+  crawlSpeed: 0.22
+  decelerationCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  jitter: 0.004
+  fullSpeedDuration: 3
+  minCoastSteps: 60
+  maxCoastSteps: 100
+  settleSpeed: 8
   rowStopped: 0
   stoppedSlot: 
 --- !u!212 &2057804500

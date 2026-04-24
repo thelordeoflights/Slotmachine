@@ -1,102 +1,113 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
+using TMPro;
+using System.Collections.Generic;
 
 public class GameControl : MonoBehaviour
 {
+    // ── Events ─────────────────────────────────────────────────────────────
+
     public static event Action HandlePulled = delegate { };
-    [SerializeField] Row[] rows;
-    [SerializeField] Transform handle, handlePulled;
-    [SerializeField] TextMeshProUGUI PrizeText;
-    [SerializeField] SoundManager soundManager;
-    int prizeValue;
-    bool resultsChecked = false;
+
+    // ── Inspector ──────────────────────────────────────────────────────────
+
+    [SerializeField] Row[]              rows;
+    [SerializeField] Transform          handleIdle;
+    [SerializeField] Transform          handlePulled;
+    [SerializeField] TextMeshProUGUI    prizeText;
+    [SerializeField] SoundManager       soundManager;
+
+    // ── Constants ──────────────────────────────────────────────────────────
+
+    static readonly Dictionary<string, int> Payouts = new()
+    {
+        { "Cherry", 100 },
+        { "Bell",   200 },
+        { "Seven",  300 },
+        { "Bar",    400 },
+    };
+
+    // ── State ──────────────────────────────────────────────────────────────
+
+    int  prizeValue;
+    bool resultsChecked;
+
+    // ── Unity lifecycle ────────────────────────────────────────────────────
+
     void Start()
     {
-        handle.gameObject.SetActive(true);
-        handlePulled.gameObject.SetActive(false);
-        PrizeText.enabled = false;
+        SetHandlePulled(false);
+        prizeText.enabled = false;
     }
+
     void Update()
     {
-        if(!rows[0].rowStopped || !rows[1].rowStopped || !rows[2].rowStopped)
+        if (AnyRowSpinning())
         {
-            resultsChecked = false;
-            PrizeText.enabled = false;
-            prizeValue = 0;
+            resultsChecked    = false;
+            prizeText.enabled = false;
+            prizeValue        = 0;
         }
-        if(rows[0].rowStopped && rows[1].rowStopped && rows[2].rowStopped && !resultsChecked)
+        else if (!resultsChecked)
         {
-            soundManager.StopSpinSound();
-            CheckResults();
-            PrizeText.enabled = true;
-            PrizeText.text = "You win $" + prizeValue.ToString() + "!";
+            OnAllRowsStopped();
         }
     }
 
     void OnMouseDown()
     {
-        if(rows[0].rowStopped && rows[1].rowStopped && rows[2].rowStopped)
-        {
+        if (!AnyRowSpinning())
             StartCoroutine(PullHandle());
-        }
     }
+
+    // ── Handle animation ───────────────────────────────────────────────────
 
     IEnumerator PullHandle()
     {
-        Debug.Log("Handle pulled!");
+        SetHandlePulled(true);
+        HandlePulled();                         // fires the event — starts all rows spinning
 
-        handle.gameObject.SetActive(false);
-        handlePulled.gameObject.SetActive(true);
-        // for(int i = 0; i < 10; i += 5)
-        // {
-        //     handle.Rotate(0, 0, i);
-        //     yield return new WaitForSeconds(0.1f);
-        // }
-        HandlePulled();
-        soundManager.PlaySpinSound();
         yield return new WaitForSeconds(0.1f);
-        handlePulled.gameObject.SetActive(false);
-        handle.gameObject.SetActive(true);
-        
-        // for(int i = 0; i < 15; i += 5)
-        // {
-        //     handle.Rotate(0, 0, -i);
-        //     yield return new WaitForSeconds(0.1f);
-        // }
+
+        SetHandlePulled(false);
     }
-    void CheckResults()
+
+    void SetHandlePulled(bool pulled)
     {
-        if(rows[0].stoppedSlot == rows[1].stoppedSlot && rows[1].stoppedSlot == rows[2].stoppedSlot)
+        handleIdle.gameObject.SetActive(!pulled);
+        handlePulled.gameObject.SetActive(pulled);
+    }
+
+    // ── Result evaluation ──────────────────────────────────────────────────
+
+    void OnAllRowsStopped()
+    {
+        soundManager.StopSpinSound();
+        EvaluateResult();
+        prizeText.enabled = true;
+        resultsChecked    = true;
+    }
+
+    void EvaluateResult()
+    {
+        string slot = rows[0].stoppedSlot;
+        bool   isMatch = slot == rows[1].stoppedSlot && slot == rows[2].stoppedSlot;
+
+        if (isMatch && Payouts.TryGetValue(slot, out int payout))
         {
-            switch(rows[0].stoppedSlot)
-            {
-                case "Cherry":
-                    prizeValue = 100;
-                    soundManager.PlayWinSound();
-                    break;
-                case "Bell":
-                    prizeValue = 200;
-                    soundManager.PlayWinSound();
-                    break;
-                case "Seven":
-                    prizeValue = 300;
-                    soundManager.PlayWinSound();
-                    break;
-                case "Bar":
-                    prizeValue = 400;
-                    soundManager.PlayWinSound();
-                    break;
-            }
-            resultsChecked = true;
+            prizeValue     = payout;
+            prizeText.text = $"You win ${prizeValue}!";
+            soundManager.PlayWinSound();
         }
         else
         {
-            PrizeText.text = "You lose. Try again!";
-            resultsChecked = true;
+            prizeValue     = 0;
+            prizeText.text = "Pull the handle to play!";
         }
     }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+
+    bool AnyRowSpinning() => !rows[0].rowStopped || !rows[1].rowStopped || !rows[2].rowStopped;
 }
