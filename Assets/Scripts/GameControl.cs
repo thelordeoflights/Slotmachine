@@ -11,6 +11,7 @@ public class GameControl : MonoBehaviour
     [SerializeField] Row[] rows;
     [SerializeField] Transform handle, handlePulled;
     [SerializeField] TextMeshProUGUI PrizeText;
+    [SerializeField] SoundManager soundManager;
     int prizeValue;
     bool resultsChecked = false;
     void Start()
@@ -29,6 +30,7 @@ public class GameControl : MonoBehaviour
         }
         if(rows[0].rowStopped && rows[1].rowStopped && rows[2].rowStopped && !resultsChecked)
         {
+            soundManager.StopSpinSound();
             CheckResults();
             PrizeText.enabled = true;
             PrizeText.text = "You win $" + prizeValue.ToString() + "!";
@@ -55,6 +57,7 @@ public class GameControl : MonoBehaviour
         //     yield return new WaitForSeconds(0.1f);
         // }
         HandlePulled();
+        soundManager.PlaySpinSound();
         yield return new WaitForSeconds(0.1f);
         handlePulled.gameObject.SetActive(false);
         handle.gameObject.SetActive(true);
@@ -73,23 +76,27 @@ public class GameControl : MonoBehaviour
             {
                 case "Cherry":
                     prizeValue = 100;
+                    soundManager.PlayWinSound();
                     break;
                 case "Bell":
                     prizeValue = 200;
+                    soundManager.PlayWinSound();
                     break;
                 case "Seven":
                     prizeValue = 300;
+                    soundManager.PlayWinSound();
                     break;
                 case "Bar":
                     prizeValue = 400;
+                    soundManager.PlayWinSound();
                     break;
             }
-            
+            resultsChecked = true;
         }
         else
         {
             PrizeText.text = "You lose. Try again!";
+            resultsChecked = true;
         }
-     
     }
 }
