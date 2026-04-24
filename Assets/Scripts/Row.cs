@@ -8,6 +8,7 @@ public class Row : MonoBehaviour
     const float StepSize      = 0.25f;
     const float WrapThreshold = -6.75f;
     const float WrapReset     = 2.25f;
+    const int   StepsPerSlot  = 6;        // 6 × 0.25 = 1.5 (icon spacing)
 
     static readonly Dictionary<float, string> SlotMap = new()
     {
@@ -20,58 +21,42 @@ public class Row : MonoBehaviour
         {  2.25f, "Seven"  },
     };
 
-    // ── Per-row custom timing (set in Inspector) ───────────────────────────
+    // ── Inspector ──────────────────────────────────────────────────────────
     [Header("Spin Speed (seconds between steps)")]
     [SerializeField] float speedFull  = 0.025f;
-    [SerializeField] float speedSlow1 = 0.06f;
-    [SerializeField] float speedSlow2 = 0.12f;
     [SerializeField] float speedCrawl = 0.22f;
 
-    [Header("Spin Duration")]
-    [SerializeField] int warmUpSteps  = 30;
-    [SerializeField] int minExtraSteps = 60;
-    [SerializeField] int maxExtraSteps = 100;
+    [Header("Deceleration Curve")]
+    [Tooltip("X = progress through coast phase (0–1), Y = interpolation toward speedCrawl (0–1).")]
+    [SerializeField] AnimationCurve decelerationCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
-    // ── Cached WaitForSeconds (rebuilt when values change) ─────────────────
-    WaitForSeconds waitFull;
-    WaitForSeconds waitSlow1;
-    WaitForSeconds waitSlow2;
-    WaitForSeconds waitCrawl;
+    [Header("Jitter")]
+    [SerializeField] float jitterAmount = 0.004f;
+
+    [Header("Spin Duration")]
+    [Tooltip("How long the reel spins at full speed before decelerating (seconds).")]
+    [SerializeField] float warmUpDuration = 3f;
+    [SerializeField] int   minExtraSteps  = 60;
+    [SerializeField] int   maxExtraSteps  = 100;
+
+    [Header("Settle")]
+    [SerializeField] float settleSpeed = 8f;
 
     // ── State ──────────────────────────────────────────────────────────────
     public bool   rowStopped;
     public string stoppedSlot;
     float cachedX;
+    int   warmUpStepCount;   // set by RunForDuration, read by Rotate
 
     // ── Unity callbacks ────────────────────────────────────────────────────
     void Start()
     {
         cachedX    = transform.position.x;
         rowStopped = true;
-        RebuildWaits();
         GameControl.HandlePulled += StartRotating;
     }
 
     void OnDestroy() => GameControl.HandlePulled -= StartRotating;
-
-    // Call this if you change speed values at runtime
-    void RebuildWaits()
-    {
-        waitFull  = new WaitForSeconds(speedFull);
-        waitSlow1 = new WaitForSeconds(speedSlow1);
-        waitSlow2 = new WaitForSeconds(speedSlow2);
-        waitCrawl = new WaitForSeconds(speedCrawl);
-    }
-
-    // ── Public API – change speed at runtime and restart ──────────────────
-    public void SetSpeeds(float full, float slow1, float slow2, float crawl)
-    {
-        speedFull  = full;
-        speedSlow1 = slow1;
-        speedSlow2 = slow2;
-        speedCrawl = crawl;
-        RebuildWaits();
-    }
 
     // ── Spin logic ─────────────────────────────────────────────────────────
     void StartRotating()
@@ -84,24 +69,27 @@ public class Row : MonoBehaviour
     {
         rowStopped = false;
 
-        // Phase 1 – warm-up
-        yield return RunSteps(warmUpSteps, _ => waitFull);
+        // Phase 1 – full speed for warmUpDuration seconds; counts steps taken
+        yield return RunForDuration(warmUpDuration);
 
-        // Phase 2 – coast + decelerate
+        // Phase 2 – deceleration
+        // Align so that (Phase1 steps + Phase2 steps) is a multiple of StepsPerSlot,
+        // guaranteeing we land exactly on an icon no matter how Phase 1 ended.
         int total = Random.Range(minExtraSteps, maxExtraSteps);
-        total += (6 - total % 6) % 6;
-
-        int p1 = Mathf.RoundToInt(total * 0.50f);
-        int p2 = Mathf.RoundToInt(total * 0.75f);
-        int p3 = Mathf.RoundToInt(total * 0.95f);
+        int combined = warmUpStepCount + total;
+        total += (StepsPerSlot - combined % StepsPerSlot) % StepsPerSlot;
 
         yield return RunSteps(total, i =>
         {
-            if      (i <= p1) return waitFull;
-            else if (i <= p2) return waitSlow1;
-            else if (i <= p3) return waitSlow2;
-            else              return waitCrawl;
+            float t      = (float)i / total;
+            float curved = decelerationCurve.Evaluate(t);
+            float wait   = Mathf.Lerp(speedFull, speedCrawl, curved);
+            float jitter = Random.Range(-jitterAmount, jitterAmount);
+            return Mathf.Max(0.01f, wait + jitter);
         });
+
+        // Phase 3 – settle
+        yield return Settle();
 
         float y = Mathf.Round(transform.position.y * 4f) / 4f;
         stoppedSlot = SlotMap.TryGetValue(y, out string name) ? name : "";
@@ -109,15 +97,57 @@ public class Row : MonoBehaviour
         rowStopped = true;
     }
 
-    IEnumerator RunSteps(int count, System.Func<int, WaitForSeconds> getWait)
+    // Full-speed spin for `duration` seconds. Records exact step count in warmUpStepCount.
+    IEnumerator RunForDuration(float duration)
+    {
+        float elapsed   = 0f;
+        warmUpStepCount = 0;
+
+        while (elapsed < duration)
+        {
+            Step();
+            warmUpStepCount++;
+
+            float wait = Mathf.Max(0.01f, speedFull + Random.Range(-jitterAmount, jitterAmount));
+            elapsed += wait;
+            yield return new WaitForSeconds(wait);
+        }
+    }
+
+    // Decelerating spin for exactly `count` steps; getWait(i) controls delay per step.
+    IEnumerator RunSteps(int count, System.Func<int, float> getWait)
     {
         for (int i = 0; i < count; i++)
         {
-            float y = transform.position.y;
-            if (y <= WrapThreshold) y = WrapReset;
-            y -= StepSize;
-            transform.position = new Vector2(cachedX, y);
-            yield return getWait(i);
+            Step();
+            yield return new WaitForSeconds(getWait(i));
         }
+    }
+
+    // Moves the reel down one step, wrapping at the bottom.
+    void Step()
+    {
+        float y = transform.position.y;
+        if (y <= WrapThreshold) y = WrapReset;
+        y -= StepSize;
+        transform.position = new Vector2(cachedX, y);
+    }
+
+    // Smoothly nudges the reel to the nearest slot position.
+    IEnumerator Settle()
+    {
+        float targetY = Mathf.Round(transform.position.y * 4f) / 4f;
+        float startY  = transform.position.y;
+        float t       = 0f;
+
+        while (t < 1f)
+        {
+            t += Time.deltaTime * settleSpeed;
+            float y = Mathf.Lerp(startY, targetY, Mathf.SmoothStep(0f, 1f, t));
+            transform.position = new Vector2(cachedX, y);
+            yield return null;
+        }
+
+        transform.position = new Vector2(cachedX, targetY);
     }
 }
